@@ -51,4 +51,4 @@ async def register_user(discord_user, username):
     sqliteconn.execute("INSERT INTO users (discord_user, username) VALUES (?, ?)", (discord_name, username))
     conn.commit()
 
-client.run(discord_token)
+client.run(config['discord_token'])
