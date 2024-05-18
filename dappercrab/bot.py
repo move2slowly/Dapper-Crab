@@ -29,13 +29,16 @@ async def on_message(message):
     if message.content.startswith('$hello'):
         await message.channel.send('Hello!')
     
-    if message.content.startswith('/register '):
+    if message.content.startswith('$register '):
         # Extract the username from the message content
-        username = message.content.split('/register ')[1]
-        
-        # Register the user in the database
-        await register_user(message.author, username)
-        await message.channel.send(f'User {username} has been registered.')
+        username = message.content.split('$register ')[1]
+        # Register the user in the database   
+        num_accounts = len(await check_registered_accounts(message.author))
+        if(num_accounts >= config['max_user_accounts']):
+            await message.channel.send(f'You have reached the max number of accounts allowed for your account.')
+        else:
+            await register_user(message.author, username)
+            await message.channel.send(f'User {username} has been registered.')
 
     if message.content.startswith('$choose'):
         choicesarray = message.content[len('$choose '):]
@@ -50,5 +53,12 @@ async def register_user(discord_user, username):
     discord_name = str(discord_user) # This line is necessary because discord_user is a discord.member.Member type
     sqliteconn.execute("INSERT INTO users (discord_user, username) VALUES (?, ?)", (discord_name, username))
     conn.commit()
+
+async def check_registered_accounts(discord_user):
+    discord_name = str(discord_user) # This line is necessary because discord_user is a discord.member.Member type
+    sqliteconn.execute("SELECT username FROM users WHERE discord_user = ?", (discord_name,))
+    accounts = sqliteconn.fetchall()
+    print(accounts)
+    return accounts
 
 client.run(config['discord_token'])
