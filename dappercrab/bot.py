@@ -2,6 +2,7 @@ import discord
 import sqlite3
 import random
 import toml
+from datetime import datetime, timedelta
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -39,6 +40,9 @@ async def on_message(message):
         else:
             await register_user(message.author, username)
             await message.channel.send(f'User {username} has been registered.')
+    
+    if message.content.startswith('$daily'):
+        await daily(message)
 
     if message.content.startswith('$choose'):
         choicesarray = message.content[len('$choose '):]
@@ -58,7 +62,33 @@ async def check_registered_accounts(discord_user):
     discord_name = str(discord_user) # This line is necessary because discord_user is a discord.member.Member type
     sqliteconn.execute("SELECT username FROM users WHERE discord_user = ?", (discord_name,))
     accounts = sqliteconn.fetchall()
-    print(accounts)
     return accounts
+
+async def daily(message):
+    discord_name = str(message.author)
+    sqliteconn.execute("SELECT shrimp, last_daily FROM users WHERE discord_user = ?", (discord_name,))
+    result = sqliteconn.fetchone()
+    
+    if not result:
+        await message.channel.send("you're not registered yet silly!.")
+        return
+    
+    shrimp, last_daily = result
+    current_time = datetime.now()
+    
+    if last_daily:
+        last_daily_time = datetime.strptime(last_daily, '%Y-%m-%d %H:%M:%S.%f')
+        if current_time - last_daily_time < timedelta(days=1):
+            await message.channel.send("You have already claimed your daily shrimp. Try again later.")
+            return
+    
+    shrimp_earned = random.randint(500, 2000)
+    new_shrimp_total = shrimp + shrimp_earned
+    
+    sqliteconn.execute("UPDATE users SET shrimp = ?, last_daily = ? WHERE discord_user = ?", 
+                       (new_shrimp_total, current_time, discord_name))
+    conn.commit()
+    
+    await message.channel.send(f'You have received {shrimp_earned} shrimp! You now have {new_shrimp_total} shrimp.')
 
 client.run(config['discord_token'])
