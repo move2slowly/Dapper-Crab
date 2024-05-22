@@ -44,6 +44,10 @@ async def on_message(message):
     if message.content.startswith('$daily'):
         await daily(message)
 
+    if message.content.startswith('$coinflip '):
+        amount = int(message.content.split('$coinflip ')[1])
+        await coinflip(message, amount)
+
     if message.content.startswith('$choose'):
         choicesarray = message.content[len('$choose '):]
         choicesarray = choicesarray.split(", ")
@@ -70,7 +74,7 @@ async def daily(message):
     result = sqliteconn.fetchone()
     
     if not result:
-        await message.channel.send("you're not registered yet silly!.")
+        await message.channel.send("you're not registered yet silly!")
         return
     
     shrimp, last_daily = result
@@ -90,5 +94,32 @@ async def daily(message):
     conn.commit()
     
     await message.channel.send(f'You have received {shrimp_earned} shrimp! You now have {new_shrimp_total} shrimp.')
+
+async def coinflip(message, amount):
+    discord_name = str(message.author)
+    sqliteconn.execute("SELECT shrimp FROM users WHERE discord_user = ?", (discord_name,))
+    result = sqliteconn.fetchone()
+    
+    if not result:
+        await message.channel.send("you're not registered yet silly!")
+        return
+    
+    balance = result[0]
+    
+    if amount > balance:
+        await message.channel.send("You don't have enough shrimp for this buddy.")
+        return
+    
+    outcome = random.choice(['win', 'lose'])
+    if outcome == 'win':
+        new_balance = balance + amount
+        sqliteconn.execute("UPDATE users SET shrimp = ? WHERE discord_user = ?", (new_balance, discord_name))
+        conn.commit()
+        await message.channel.send(f'Congratulations! You won {amount} and now have a balance of {new_balance}.')
+    else:
+        new_balance = balance - amount
+        sqliteconn.execute("UPDATE users SET shrimp = ? WHERE discord_user = ?", (new_balance, discord_name))
+        conn.commit()
+        await message.channel.send(f'Unlucky!! {amount} You\'ve lost and now and now have a balance of {new_balance}.')
 
 client.run(config['discord_token'])
