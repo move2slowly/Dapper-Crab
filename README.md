@@ -1,3 +1,6 @@
+# Unmaintained
+This project was originally meant to teach a friend how to code. They are no longer interested in CS, this project will be deprecated until they are interested again.
+
 # Dapper-Crab
 ## Setting up the bot
 - Set up the bot by first creating it in the discord developer portal using this link: https://discord.com/developers/applications
